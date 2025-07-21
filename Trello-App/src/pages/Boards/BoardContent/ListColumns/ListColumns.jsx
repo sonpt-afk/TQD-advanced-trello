@@ -10,19 +10,30 @@ import {
 import { useState } from 'react'
 import { TextField } from '@mui/material'
 import { toast } from 'react-toastify'
-
+import {
+  createNewCardAPI,
+  createNewColumnAPI,
+  deleteColumnDetailsAPI,
+  
+  moveCardToDifferentColumnAPI,
+  updateBoardDetailsAPI,
+  updateColumnDetailsAPI
+} from '~/apis'
+import { generatePlaceholderCard } from '~/utils/formatters'
+import { fetchBoardDetailApi, updateCurrentActiveBoard, selectCurrentActiveBoard } from '~/redux/activeBoard/activeBoardSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { cloneDeep } from 'lodash'
 function ListColumns({
-  columns,
-  createNewColumn,
-  createNewCard,
-  deleteColumnDetails
+  columns
 }) {
   const [openNewColumnForm, setOpenNewColumnForm] = useState(false)
   const toggleOpenNewColumnForm = () => setOpenNewColumnForm(!openNewColumnForm)
+  const board = useSelector(selectCurrentActiveBoard)
+  const dispatch = useDispatch();
 
   const [newColumnTitle, setNewColumnTitle] = useState('')
 
-  const addNewColumn = () => {
+  const addNewColumn = async() => {
     if (!newColumnTitle) {
       toast.error('Please enter Column Title')
       return
@@ -33,13 +44,28 @@ function ListColumns({
       title: newColumnTitle
     }
 
+    //gọi api tạo mới column và làm lại data State Board
+ const createdColumn = await createNewColumnAPI({
+      ...newColumnData,
+      boardId: board._id
+    })
+    console.log('createdColumn:', createdColumn)
+
+    // Khi tạo column mới thì nó sẽ chưa có card, cần xử lý vấn đề kéo thả vào một column rỗng (Nhó lại video 37.2, code hiện tại là video 69)
+    createdColumn.cards = [generatePlaceholderCard(createdColumn)]
+    createdColumn.cardOrderIds = [generatePlaceholderCard(createdColumn)._id]
+
+    // Cập nhật state board
     /**
-     * - Gọi lên props function createNewColumn nằm ở component cha cao nhất (boards/_id.jsx)
-     * - Lưu ý: về sau ở học phần MERN Stack Advance nâng cao học trực tiếp với mình thì chúng ta sẽ đưa dữ liệu Board ra ngoài Redux Global Store
-     * - Thì lúc này chúng ta có thể gọi luôn API ở đây là xong thay vì phải lần lược gọi ngược lên những component cha phía bên trên. (Đối với component con nằm càng sâu thì càng khổ 😆)
-     * - Với việc sử dụng Redux như vậy thì code sẽ Clean chuẩn chỉnh hơn rất nhiều
+     * - Phía Front-end chúng ta phải tự làm đúng lại state data board (thay vì phải gọi lại api fetchBoardDetailsAPI)
+     * - Lưu ý: cách làm này phụ thuộc vào tùy lựa chọn và đặc thù dự án, có nơi thì Back-end sẽ hỗ trợ trả về luôn toàn bộ Board dù đây có là api tạo Column hay Card đi chăng nữa. => Lúc này Front-end sẽ nhàn hơn
      */
-    createNewColumn(newColumnData)
+    const newBoard = cloneDeep(board) // Sử dụng cloneDeep để tránh việc mutate trực tiếp state board
+    newBoard.columns.push(createdColumn)
+    newBoard.columnOrderIds.push(createdColumn._id)
+    // setBoard(newBoard)
+// Cập nhật lại data cua board trong redux
+    dispatch(updateCurrentActiveBoard(newBoard)) 
 
     // Đóng trạng thái thêm Column mới & Clear Input
     toggleOpenNewColumnForm()
@@ -71,8 +97,6 @@ function ListColumns({
           <Column
             key={column._id}
             column={column}
-            createNewCard={createNewCard}
-            deleteColumnDetails={deleteColumnDetails}
           />
         ))}
 

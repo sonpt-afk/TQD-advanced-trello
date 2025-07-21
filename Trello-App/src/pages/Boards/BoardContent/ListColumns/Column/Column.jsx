@@ -24,8 +24,16 @@ import ListCards from './ListCards/ListCards'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useConfirm } from 'material-ui-confirm'
-
-function Column({ column, createNewCard, deleteColumnDetails }) {
+import {
+  createNewCardAPI,
+deleteColumnDetailsAPI
+} from '~/apis'
+import { fetchBoardDetailApi, updateCurrentActiveBoard, selectCurrentActiveBoard } from '~/redux/activeBoard/activeBoardSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { cloneDeep } from 'lodash'
+function Column({ column }) {
+    const board = useSelector(selectCurrentActiveBoard)
+    const dispatch = useDispatch();
   const {
     attributes,
     listeners,
@@ -64,7 +72,7 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
 
   const [newCardTitle, setNewCardTitle] = useState('')
 
-  const addNewCard = () => {
+  const addNewCard = async () => {
     if (!newCardTitle) {
       toast.error('Please enter Card Title', { position: 'bottom-right' })
       return
@@ -76,14 +84,11 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
       columnId: column._id
     }
 
-    /**
-     * - Gọi lên props function createNewCard nằm ở component cha cao nhất (boards/_id.jsx)
-     * - Lưu ý: về sau ở học phần MERN Stack Advance nâng cao học trực tiếp với mình thì chúng ta sẽ đưa dữ liệu Board ra ngoài Redux Global Store
-     * - Thì lúc này chúng ta có thể gọi luôn API ở đây là xong thay vì phải lần lược gọi ngược lên những component cha phía bên trên. (Đối với component con nằm càng sâu thì càng khổ 😆)
-     * - Với việc sử dụng Redux như vậy thì code sẽ Clean chuẩn chỉnh hơn rất nhiều
-     */
-    createNewCard(newCardData)
-
+    //gọi api tạo mới card và làm lại data state Board
+    const createdCard = await createNewCardAPI({
+      ...newCardData,
+      boardId: board._id
+    })
     // Đóng trạng thái thêm Card mới & Clear Input
     toggleOpenNewCardForm()
     setNewCardTitle('')
@@ -101,16 +106,19 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
       cancellationText: 'Cancel'
     })
       .then(() => {
-        /**
-         * - Gọi lên props function deleteColumnDetails nằm ở component cha cao nhất (boards/_id.jsx)
-         * - Lưu ý: về sau ở học phần MERN Stack Advance nâng cao học trực tiếp với mình thì chúng ta sẽ đưa dữ liệu Board ra ngoài Redux Global Store
-         * - Thì lúc này chúng ta có thể gọi luôn API ở đây là xong thay vì phải lần lược gọi ngược lên những component cha phía bên trên. (Đối với component con nằm càng sâu thì càng khổ 😆)
-         * - Với việc sử dụng Redux như vậy thì code sẽ Clean chuẩn chỉnh hơn rất nhiều
-         */
-        console.log('column._id:', column._id)
-        console.log('column.title:', column.title)
-
-        deleteColumnDetails(column._id)
+        // Update cho chuẩn dữ liệu state Board
+          const newBoard = { ...board }
+          newBoard.columns = newBoard.columns.filter((c) => c._id !== column._id)
+          newBoard.columnOrderIds = newBoard.columnOrderIds.filter(
+            (_id) => _id !== column._id
+          )
+          // setBoard(newBoard)
+          dispatch(updateCurrentActiveBoard(newBoard)) // Cập nhật lại state board trong redux
+          // Gọi API xử lý phía BE
+          deleteColumnDetailsAPI(column._id).then((res) => {
+            toast.success(res?.deleteResult)
+            console.log('🚀 ~ deleteColumnDetails ~ res:', res)
+          })
       })
       .catch(() => {})
   }
