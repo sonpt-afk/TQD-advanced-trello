@@ -17,18 +17,17 @@ import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 import { fetchBoardDetailApi, updateCurrentActiveBoard, selectCurrentActiveBoard } from '~/redux/activeBoard/activeBoardSlice'
 import { useDispatch, useSelector } from 'react-redux'
+import {useParams} from 'react-router-dom' 
 function Board() { 
   const dispatch = useDispatch();
+  const {boardId} = useParams()
+  const board = useSelector(selectCurrentActiveBoard)
+
   useEffect(() => {
-    // Tạm thời fix  cứng boardId, flow chuẩn chỉnh về sau khi học nâng cao trực tiếp vơi minh là chúng ta sẽ sử dụng react-router-dom để lấy chuẩn boardId từ URL về
-    const boardId = '687b8f1633496ea77eb074a5'
-    // Call API
     dispatch(fetchBoardDetailApi(boardId));
    
-  }, [dispatch])
-  const board = useSelector(selectCurrentActiveBoard)
+  }, [dispatch, boardId])
   
-
   /**
    * - Func này có nhiệm vụ gọi API và xử lý khi kéo thả Column xong xuôi
    * - Chỉ cần gọi API để cập nhật mảng columnOrderIds của Board chứa nó (thay đổi vị trí trong mảng)
