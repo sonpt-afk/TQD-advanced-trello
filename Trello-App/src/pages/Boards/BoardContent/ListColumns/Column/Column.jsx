@@ -84,14 +84,48 @@ function Column({ column }) {
       columnId: column._id
     }
 
-    //gọi api tạo mới card và làm lại data state Board
+    try {
+    // Call API to create new card
     const createdCard = await createNewCardAPI({
       ...newCardData,
       boardId: board._id
     })
+    console.log('createdCard:', createdCard)
+  // Create a completely new board object with immutable updates
+    const newBoard = {
+      ...board,
+      columns: board.columns.map(c => {
+        if (c._id === column._id) {
+          // For the target column, create a new column object
+          const newCards = c.cards.length === 0 || 
+                          (c.cards.length === 1 && !c.cards[0]._id) ? 
+                          [createdCard] : 
+                          [...c.cards, createdCard]
+                          
+          const newCardOrderIds = c.cards.length === 0 || 
+                                 (c.cards.length === 1 && !c.cards[0]._id) ? 
+                                 [createdCard._id] : 
+                                 [...c.cardOrderIds, createdCard._id]
+          
+          return {
+            ...c,
+            cards: newCards,
+            cardOrderIds: newCardOrderIds
+          }
+        }
+        return c
+      })
+    }
+  // Update Redux state
+  dispatch(updateCurrentActiveBoard(newBoard))
+  
     // Đóng trạng thái thêm Card mới & Clear Input
     toggleOpenNewCardForm()
     setNewCardTitle('')
+  }catch (error) {
+    console.error("Error creating card:", error)
+    toast.error('Failed to create card')
+  }
   }
 
   // Xử lý xóa một Column và Card bên trong nó
