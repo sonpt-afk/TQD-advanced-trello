@@ -228,7 +228,7 @@ function Column({ column }) {
                 }}
               >
                 <ListItemIcon>
-                  <AddCardIcon className='add-card-icon' fontSize='small' />
+                  <AddCardIcon classNameName='add-card-icon' fontSize='small' />
                 </ListItemIcon>
                 <ListItemText>Add new card</ListItemText>
                 <Typography variant='body2' color='text.secondary'>
@@ -276,7 +276,7 @@ function Column({ column }) {
               >
                 <ListItemIcon>
                   <DeleteForeverIcon
-                    className='delete-forever-icon'
+                    classNameName='delete-forever-icon'
                     fontSize='small'
                   />
                 </ListItemIcon>
@@ -375,6 +375,8 @@ function Column({ column }) {
                 }}
               >
                 <Button
+              className='interceptor-loading'
+
                   onClick={addNewCard}
                   variant='contained'
                   color='success'
